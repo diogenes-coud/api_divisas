@@ -1,0 +1,16 @@
+# Configuración runtime de api_divisas
+# Si FECHA_INICIAL está vacía y AUTO_DESDE_ULTIMA_FECHA_DB=true,
+# el proceso arranca desde (MAX(Fecha) + 1 día) en GJO_CCO.dbo.Divisas.
+
+FECHA_INICIAL=base_datos
+FECHA_FINAL=ayer
+FROM_CURRENCY=
+REINTENTOS=3
+SLEEP_ENTRE_FECHAS_SEG=1
+FALLBACK_DIAS_ANTERIORES=30
+LOG_FILAS_SALTADAS=true
+AUTO_DESDE_ULTIMA_FECHA_DB=true
+
+# Servidores candidatos (se usa el primero disponible)
+sqlserver: "CCODB-BI.ond.com.ar", true
+sqlserver: "159.138.115.230", false

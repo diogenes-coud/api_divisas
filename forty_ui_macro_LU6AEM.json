@@ -1,0 +1,49 @@
+[
+  {
+    "type": "click",
+    "dt": 1,
+    "abs_x": 490,
+    "abs_y": 400,
+    "in_window": true,
+    "x": 193,
+    "y": 400
+  },
+  {
+    "type": "click",
+    "dt": 1,
+    "abs_x": 1113,
+    "abs_y": 602,
+    "in_window": true,
+    "x": 816,
+    "y": 602
+  },
+  {
+    "type": "input_text",
+    "text": "{user}",
+    "dt": 1,
+    "abs_x": 1113,
+    "abs_y": 602,
+    "in_window": true,
+    "x": 816,
+    "y": 602
+  },
+  {
+    "type": "key",
+    "key": "{TAB}",
+    "dt": 4.306255578994751
+  },
+  {
+    "type": "input_text",
+    "text": "{password}",
+    "dt": 1
+  },
+  {
+    "type": "click",
+    "dt": 1,
+    "abs_x": 1202,
+    "abs_y": 732,
+    "in_window": true,
+    "x": 905,
+    "y": 732
+  }
+]
