@@ -1,7 +1,9 @@
 Set-Location $PSScriptRoot
+$projectName = Split-Path $PSScriptRoot -Leaf
 
 Write-Host "=====================================" -ForegroundColor Cyan
 Write-Host " G1: SERVER -> LOCAL (GIT Pull)"
+Write-Host " Proyecto: $projectName"
 Write-Host "=====================================" -ForegroundColor Cyan
 Write-Host ""
 
