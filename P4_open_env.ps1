@@ -65,10 +65,33 @@ function Resolve-DbProbeTarget {
 function Test-DbServerConnectivity {
     param(
         [Parameter(Mandatory = $true)]
-        [string]$Server
+        [string]$Server,
+        [int]$TimeoutMs = 0,
+        [switch]$SkipPing,
+        [switch]$QuickOnly
     )
 
     $probe = Resolve-DbProbeTarget -Server $Server
+
+    $effectiveTimeoutMs = if ($TimeoutMs -gt 0) { $TimeoutMs } else { 3000 }
+
+    try {
+        $tcpClient = New-Object System.Net.Sockets.TcpClient
+        $connectAsync = $tcpClient.BeginConnect($probe.Host, $probe.Port, $null, $null)
+        $waitOk = $connectAsync.AsyncWaitHandle.WaitOne([TimeSpan]::FromMilliseconds($effectiveTimeoutMs))
+        if ($waitOk -and $tcpClient.Connected) {
+            $tcpClient.EndConnect($connectAsync)
+            $tcpClient.Close()
+            return [PSCustomObject]@{ Ok = $true; Method = "TCP:$($probe.Port)"; Host = $probe.Host; Port = $probe.Port }
+        }
+
+        $tcpClient.Close()
+    } catch {
+    }
+
+    if ($QuickOnly) {
+        return [PSCustomObject]@{ Ok = $false; Method = "NONE"; Host = $probe.Host; Port = $probe.Port }
+    }
 
     $hasTnc = (Get-Command Test-NetConnection -ErrorAction SilentlyContinue) -ne $null
     if ($hasTnc) {
@@ -83,6 +106,10 @@ function Test-DbServerConnectivity {
         } finally {
             $global:ProgressPreference = $prevProgressPreference
         }
+    }
+
+    if ($SkipPing) {
+        return [PSCustomObject]@{ Ok = $false; Method = "NONE"; Host = $probe.Host; Port = $probe.Port }
     }
 
     $pingOk = Test-Connection -ComputerName $probe.Host -Count 1 -Quiet -ErrorAction SilentlyContinue
@@ -106,7 +133,24 @@ function Try-ConnectServers {
 
         $prefix = if ($PhaseLabel) { "[$PhaseLabel] " } else { "" }
         Write-Host ("{0}Probando DB_SERVER: {1} (host={2}, puerto={3}, requiere_vpn={4})" -f $prefix, $server, $probe.Host, $probe.Port, $candidate.RequiresVpn) -ForegroundColor Gray
-        $check = Test-DbServerConnectivity -Server $server
+        $directTimeoutMs = 1200
+        $vpnTimeoutMs = 3000
+
+        $tmpDirectTimeout = 0
+        if ($env:DB_PROBE_TIMEOUT_MS_DIRECT -and [int]::TryParse($env:DB_PROBE_TIMEOUT_MS_DIRECT, [ref]$tmpDirectTimeout) -and $tmpDirectTimeout -gt 0) {
+            $directTimeoutMs = $tmpDirectTimeout
+        }
+
+        $tmpVpnTimeout = 0
+        if ($env:DB_PROBE_TIMEOUT_MS_VPN -and [int]::TryParse($env:DB_PROBE_TIMEOUT_MS_VPN, [ref]$tmpVpnTimeout) -and $tmpVpnTimeout -gt 0) {
+            $vpnTimeoutMs = $tmpVpnTimeout
+        }
+
+        $timeoutMs = if ($candidate.RequiresVpn) { $vpnTimeoutMs } else { $directTimeoutMs }
+        $skipPing = -not $candidate.RequiresVpn
+
+        $quickOnly = -not $candidate.RequiresVpn
+        $check = Test-DbServerConnectivity -Server $server -TimeoutMs $timeoutMs -SkipPing:$skipPing -QuickOnly:$quickOnly
         if ($check.Ok) {
             [System.Environment]::SetEnvironmentVariable("DB_SERVER", $candidate.Server, "Process")
             [System.Environment]::SetEnvironmentVariable("DB_REQUIRES_VPN", ($(if ($candidate.RequiresVpn) { "true" } else { "false" })), "Process")
@@ -464,10 +508,14 @@ function Import-KeyValueConfigToEnv {
         $line = $_.Trim()
         if (-not $line -or $line.StartsWith("#")) { return }
 
+        $parts = $null
         if ($line.Contains("=")) {
             $parts = $line.Split('=', 2)
-            if ($parts.Count -ne 2) { return }
+        } elseif ($line.Contains(":")) {
+            $parts = $line.Split(':', 2)
+        }
 
+        if ($parts -and $parts.Count -eq 2) {
             $key = $parts[0].Trim()
             $value = $parts[1].Trim()
 

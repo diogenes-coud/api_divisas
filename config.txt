@@ -14,3 +14,22 @@ AUTO_DESDE_ULTIMA_FECHA_DB=true
 # Servidores candidatos (se usa el primero disponible)
 sqlserver: "CCODB-BI.ond.com.ar", true
 sqlserver: "159.138.115.230", false
+
+
+FORTY_VPN_CONNECT_CMD="{FORTY_CLIENT_EXE}" vpn connect --name "VPNOndiss" --user "{user}" --password "{password}"
+
+
+# Config Git (G1/G2)
+GIT_PROVIDER=github
+GITHUB_OWNER=diogenes-coud
+GIT_DEFAULT_BRANCH=main
+GIT_REMOTE_NAME=origin
+# Opcional: si se define, tiene prioridad sobre owner+nombre de carpeta
+# GIT_REMOTE_URL=https://github.com/diogenes-coud/api_blue.git
+GIT_AUTO_INSTALL=true
+
+# G1: forzar lectura desde servidor y sobrescribir local
+G1_FORCE_PULL_TIMEOUT_SECONDS=10
+G1_FORCE_PULL_DEFAULT=N
+
+
